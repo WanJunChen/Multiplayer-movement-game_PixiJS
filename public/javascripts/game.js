@@ -1,12 +1,12 @@
-var man, state;
-let speed = 3;
+let man, state;
+let speed = 5;
 
 //Create a Pixi Application
 const app = new PIXI.Application({
-    width: 1200,
-    height: 900,
+    width: 1810,
+    height: 1220,
     antialias: true,
-    backgroundColor: 0x000000
+    backgroundColor: 0xFFFFFF
 });
 //Add the canvas that Pixi automatically created for you to the HTML document
 document.getElementById('GameCanvas').appendChild(app.view);
@@ -19,11 +19,49 @@ function setup() {
     //Initialize the game sprites, set the game `state` to `play`
     //and start the 'gameLoop'
 
+    // Set bagScene
+    let bagScene = new PIXI.Container();
+
+    let bagBG = new PIXI.Graphics();
+    bagBG.beginFill(0x8F6128);
+    bagBG.drawRoundedRect(10, 10, 180, 1200, 10)
+    bagBG.endFill();
+    bagScene.addChild(bagBG);
+
+    let bagTitle = new PIXI.Text('背包', {
+        fontSize: 36,
+        fill: 0xFFFFFF
+    });
+    bagTitle.x = (bagScene.width - bagTitle.width) / 2 + 10;
+    bagTitle.y = 50;
+    bagScene.addChild(bagTitle);
+
+    let BagItem_y = 130
+    let ItemCount = 6
+    for (let i = 0; i < ItemCount; i++){
+
+        createBagItem(20, BagItem_y);
+        BagItem_y += 180;
+    }
+    function createBagItem(x, y) {
+        let bagItem = new PIXI.Graphics();
+        bagItem.beginFill(0xFFFFFF);
+        bagItem.drawRoundedRect(x, y, 160, 170, 10)
+        bagItem.endFill();
+        bagScene.addChild(bagItem);
+    }
+    
+
+    app.stage.addChild(bagScene);
+
+    // Set gameScene with map
     let gameScene =  new PIXI.Container();
-    let mapBG = new PIXI.Sprite(app.loader.resources["/images/Achievement_map.jpg"].texture);
-    mapBG.width = 1200;
-    mapBG.height = 900;
-    gameScene.addChild(mapBG);
+    let gameBG = new PIXI.Sprite(app.loader.resources["/images/Achievement_map.jpg"].texture);
+    gameBG.x = 200;
+    gameBG.y = 10;
+    gameBG.width = 1600;
+    gameBG.height = 1200;
+    gameScene.addChild(gameBG);
     app.stage.addChild(gameScene);
 
 
@@ -31,16 +69,16 @@ function setup() {
     character.visible = true;
     app.stage.addChild(character);
 
-    var manWidth = 50;
-    var manHeight = 75;
-    man = createSprite(PIXI.Texture.from("/images/character.png"), 240, 150, 0, 0, manWidth, manHeight)
+    let manWidth = 50;
+    let manHeight = 75;
+    man = createSprite(PIXI.Texture.from("/images/character.png"), 630, 150, 0, 0, manWidth, manHeight)
     character.addChild(man);
-    function createSprite(imageTexture, X, Y, vX, vY, width, height) {
+    function createSprite(imageTexture, x, y, vx, vy, width, height) {
         const Sprite = new PIXI.Sprite(imageTexture);
-        Sprite.x = X;
-        Sprite.y = Y;
-        Sprite.vx = vX;
-        Sprite.vy = vY;
+        Sprite.x = x;
+        Sprite.y = y;
+        Sprite.vx = vx;
+        Sprite.vy = vy;
         Sprite.width = width;
         Sprite.height = height;
         return Sprite;
@@ -54,7 +92,7 @@ function setup() {
 
     //Left arrow key `press` method
     left.press = () => {
-        //Change the cat's velocity when the key is pressed
+        //Change the man's velocity when the key is pressed
         man.vx = -(speed);
         man.vy = 0;
     };
@@ -62,8 +100,8 @@ function setup() {
     //Left arrow key `release` method
     left.release = () => {
         //If the left arrow has been released, and the right arrow isn't down,
-        //and the cat isn't moving vertically:
-        //Stop the cat
+        //and the man isn't moving vertically:
+        //Stop the man
         if (!right.isDown && man.vy === 0) {
             man.vx = 0;
         }
