@@ -1,13 +1,26 @@
-// import Socket from "./sockets";
-// const socket = new Socket();
+const socket = io.connect();
 
-let man, state;
-let playerArray = [];
-let manWidth = 50;
-let manHeight = 75;
-let speed = 5;
-let BagItem_y = 130
-let ItemCount = 6
+let myPlayer, state;
+let AllPlayer = [];
+let PlayerImageTexture;
+let PlayerInfo = {
+    name: prompt('請輸入名稱: '),
+    ImageTexture: PlayerImageTexture,
+    x: 530,
+    y: 150,
+    vx: 0,
+    vy: 0,
+    width: 50,
+    height: 75,
+    id: null
+}
+let BagItem_y = 130;
+let ItemCount = 6;
+let gameHeight = 1200;
+let left    = keyboard(37),
+    up      = keyboard(38),
+    right   = keyboard(39),
+    down    = keyboard(40);
 
 //Create a Pixi Application
 const app = new PIXI.Application({
@@ -27,102 +40,31 @@ function setup() {
     //Initialize the game sprites, set the game `state` to `play`
     //and start the 'gameLoop'
 
-    // ========== Set bagScene ==========
-    let bagScene = new PIXI.Container();
-    let bagBG = new PIXI.Graphics();
-    bagBG.beginFill(0x8F6128);
-    bagBG.drawRoundedRect(10, 10, 180, 1200, 10)
-    bagBG.endFill();
-    bagScene.addChild(bagBG);
-    let bagTitle = new PIXI.Text('背包', {
-        fontSize: 36,
-        fill: 0xFFFFFF
-    });
-    bagTitle.x = (bagScene.width - bagTitle.width) / 2 + 10;
-    bagTitle.y = 50;
-    bagScene.addChild(bagTitle);
-    for (let i = 0; i < ItemCount; i++){
-
-        createBagItem(20, BagItem_y);
-        BagItem_y += 180;
-    }
-    function createBagItem(x, y) {
-        let bagItem = new PIXI.Graphics();
-        bagItem.beginFill(0xFFFFFF);
-        bagItem.drawRoundedRect(x, y, 160, 170, 10)
-        bagItem.endFill();
-        bagScene.addChild(bagItem);
-    }
-    app.stage.addChild(bagScene);
-
-    // ========== Set gameScene with map ==========
-    let gameScene =  new PIXI.Container();
-    let gameBG = new PIXI.Sprite(app.loader.resources["/images/Achievement_map.jpg"].texture);
-    gameBG.x = 200;
-    gameBG.y = 10;
-    gameBG.width = 1600;
-    gameBG.height = 1200;
-    gameScene.addChild(gameBG);
-    app.stage.addChild(gameScene);
-
-    // ========== Set player on map ==========
-    man = createPlayer(PIXI.Texture.from("/images/character.png"), 530, 150, 0, 0, manWidth, manHeight)
-    app.stage.addChild(man);
+    setBagBar(180, gameHeight);
+    setGameScene(1600, gameHeight);
     
-    // ========== set keyboard event ==========
-    let left = keyboard(37),
-        up = keyboard(38),
-        right = keyboard(39),
-        down = keyboard(40);
+    // ========== Set all player on map ==========
+    PlayerInfo.ImageTexture = PIXI.Texture.from("/images/character.png");
+    PlayerInfo.id = GetID();
+    myPlayer = createPlayer(PlayerInfo);
+    app.stage.addChild(myPlayer);
 
-    //Left arrow key `press` method
-    left.press = () => {
-        //Change the man's velocity when the key is pressed
-        man.vx = -(speed);
-        man.vy = 0;
-    };
-    //Left arrow key `release` method
-    left.release = () => {
-        //If the left arrow has been released, and the right arrow isn't down,
-        //and the man isn't moving vertically:
-        //Stop the man
-        if (!right.isDown && man.vy === 0) {
-            man.vx = 0;
+    // 發送一個 "sendMessage" 事件
+    socket.emit("sendMessage", { 
+        Player: {
+            id: PlayerInfo.id,
+            name: PlayerInfo.name,
+            width:  PlayerInfo.width,
+            height:  PlayerInfo.height,
+            TextureFrom: PlayerInfo.ImageTexture.textureCacheIds[0]
         }
-    };
+    });
+    // 監聽來自 server 的 "allMessage" 事件
+    socket.on("allMessage", function (message) {
+        console.log(message)
+    });
 
-    //Up
-    up.press = () => {
-        man.vy = -(speed);
-        man.vx = 0;
-    };
-    up.release = () => {
-        if (!down.isDown && man.vx === 0) {
-            man.vy = 0;
-        }
-    };
-
-    //Right
-    right.press = () => {
-        man.vx = speed;
-        man.vy = 0;
-    };
-    right.release = () => {
-        if (!left.isDown && man.vy === 0) {
-            man.vx = 0;
-        }
-    };
-
-    //Down
-    down.press = () => {
-        man.vy = speed;
-        man.vx = 0;
-    };
-    down.release = () => {
-        if (!up.isDown && man.vx === 0) {
-            man.vy = 0;
-        }
-    };
+    PlayerMove(myPlayer);
 
     state = play;
     app.ticker.add(delta =>gameLoop(delta));
@@ -135,8 +77,8 @@ function gameLoop(delta) {
   
 function play(delta) {
     //All the game logic goes here
-    man.x += man.vx;
-    man.y += man.vy;
+    myPlayer.x += myPlayer.vx;
+    myPlayer.y += myPlayer.vy;
 }
 
 function end() {
@@ -162,12 +104,13 @@ function keyboard(keyCode) {
     key.downHandler = event => {
       if (event.keyCode === key.code) {
         if (key.isUp && key.press) {
-            console.log("playerID:", man.id, ", direct:", key.string);
+            console.log(myPlayer.name, myPlayer.id, ", Move direction:", key.string);
             key.press();
         }
         key.isDown = true;
         key.isUp = false;
       }
+
       event.preventDefault();
     };
   
@@ -189,24 +132,128 @@ function keyboard(keyCode) {
 
     return key;
 }
+
+function PlayerMove(Player) { 
+    let speed = 5;
+    //Left arrow key `press` method
+    left.press = () => {
+        //Change the Player's velocity when the key is pressed
+        Player.vx = -(speed);
+        Player.vy = 0;
+    };
+    //Left arrow key `release` method
+    left.release = () => {
+        //If the left arrow has been released, and the right arrow isn't down,
+        //and Player isn't moving vertically:
+        //Stop Player
+        if (!right.isDown && Player.vy === 0) {
+            Player.vx = 0;
+        }
+    };
+
+    //Up
+    up.press = () => {
+        Player.vy = -(speed);
+        Player.vx = 0;
+    };
+    up.release = () => {
+        if (!down.isDown && Player.vx === 0) {
+            Player.vy = 0;
+        }
+    };
+
+    //Right
+    right.press = () => {
+        Player.vx = speed;
+        Player.vy = 0;
+    };
+    right.release = () => {
+        if (!left.isDown && Player.vy === 0) {
+            Player.vx = 0;
+        }
+    };
+
+    //Down
+    down.press = () => {
+        Player.vy = speed;
+        Player.vx = 0;
+    };
+    down.release = () => {
+        if (!up.isDown && Player.vx === 0) {
+            Player.vy = 0;
+        }
+    };
+
+    
+}
   
-// generate random ID of length 15
-function GenNonDuplicateID(){
-    let idStr = Date.now().toString(36);
-    idStr += Math.random().toString(36).substring(2, 9);
-    return idStr;
+function GetID(){
+    return socket.id;
 }
 
-function createPlayer(imageTexture, x, y, vx, vy, width, height) {
-    const Player = new PIXI.Sprite(imageTexture);
-    Player.id = GenNonDuplicateID();
-    Player.x = x;
-    Player.y = y;
-    Player.vx = vx;
-    Player.vy = vy;
-    Player.width = width;
-    Player.height = height;
-    playerArray.push(Player);
-    
-    return Player;
+function setBagBar(width, height) {
+    let BagBar = new PIXI.Container();
+    let bagBG = new PIXI.Graphics();
+    bagBG.beginFill(0x8F6128);
+    bagBG.drawRoundedRect(10, 10, width, height, 10);
+    bagBG.endFill();
+    BagBar.addChild(bagBG);
+    let BagTitle = new PIXI.Text('背包', {
+        fontSize: 36,
+        fill: 0xFFFFFF
+    });
+    BagTitle.x = (width - BagTitle.width) / 2 + 10;
+    BagTitle.y = 50;
+    BagBar.addChild(BagTitle);
+    for (let i = 0; i < ItemCount; i++){
+        let bagItem = new PIXI.Graphics();
+        bagItem.beginFill(0xFFFFFF);
+        bagItem.drawRoundedRect(20, BagItem_y, 160, 170, 10)
+        bagItem.endFill();
+        BagBar.addChild(bagItem);
+        BagItem_y += 180;
+    }
+    app.stage.addChild(BagBar);
+}
+
+function setGameScene(width, height) {
+    let gameScene =  new PIXI.Container();
+    let gameBG = new PIXI.Sprite(app.loader.resources["/images/Achievement_map.jpg"].texture);
+    gameBG.x = 200;
+    gameBG.y = 10;
+    gameBG.width = width;
+    gameBG.height = height;
+    gameScene.addChild(gameBG);
+    app.stage.addChild(gameScene);
+}
+
+function createPlayer(PlayerInfo) {
+    let PlayerContainer = new PIXI.Container();
+    let Player = new PIXI.Sprite(PlayerInfo.ImageTexture);
+    let Name = new PIXI.Text(PlayerInfo.name, {
+        fontSize: 20,
+        fill: 0xFFFFFF
+    });
+    let NameBG = new PIXI.Graphics()
+    NameBG.beginFill(0x000000, 0.3);
+    NameBG.drawRoundedRect((PlayerInfo.width - Name.width - 8) / 2, 0, Name.width + 8, 23, 5)
+    NameBG.endFill();
+    // PlayerContainer.interactive = true;
+    // PlayerContainer.buttonMode = true;
+    PlayerContainer.name = PlayerInfo.name;
+    PlayerContainer.id = PlayerInfo.id;
+    PlayerContainer.x = PlayerInfo.x;
+    PlayerContainer.y = PlayerInfo.y;
+    PlayerContainer.vx = PlayerInfo.vx;
+    PlayerContainer.vy = PlayerInfo.vy;
+    Player.width = PlayerInfo.width;
+    Player.height = PlayerInfo.height;
+    Player.x = 0;
+    Player.y = 25;
+    Name.x = (PlayerInfo.width - Name.width) / 2;
+    Name.y = 0;
+    PlayerContainer.addChild(NameBG);
+    PlayerContainer.addChild(Name);
+    PlayerContainer.addChild(Player);
+    return PlayerContainer;
 }
