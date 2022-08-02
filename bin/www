@@ -39,25 +39,46 @@ server.on('listening', onListening);
  * socket.broadcast.emit — Client給自己以外的Client發送事件
 */
 var socket = require('socket.io');
+const { Console } = require('console');
 var io = socket(server);
 
-  // const Game = require('../public/javascripts/game');
-  // const game = new Game();
+var Players = [];
 // Listen for socket.io connections
 io.on("connection", onConnection = (socket) => {
   
   console.log('Socket.io connected');
 
-  // 建立一個 "sendMessage" 事件的監聽
-  socket.on("sendMessage", function (message) {
-    // 當收到事件的時候，也發送一個 "allMessage" 事件給所有的連線用戶
-    io.emit("allMessage", message);
-    console.log(message);
+  // // 建立一個 "sendMessage" 事件的監聽，message為接收到的內容
+  // socket.on("sendMessage", function (message) {
+  //   // 當收到事件的時候，也發送一個 "allMessage" 事件給所有的連線用戶
+  //   io.emit("allMessage", message);
+  //   console.log(message);
 
-  })
+  // })
+
+  socket.on('initialize', function(newPlayer) {
+    Players.push(newPlayer);
+    io.emit("AddPlayer", Players);
+    console.log(Players);
+  });
+  socket.on('update', function(id, x, y) {
+    // console.log('id:', id, 'x:', x, 'y:', y);
+    io.emit('updateAllData', id, x, y)
+  });
 
   socket.on('disconnect', onDisconnect => {
-    console.log('Socket.io disconnected');
+    // When Player disconnect, remove the data in Players Arrary
+    var rmPlayerId;
+    for (var i = 0; i < Players.length; i++) {
+      if (Players[i].id == socket.id) {
+        rmPlayerId = Players[i].id;
+        Players = Players.filter (function (item) {
+          return item !== Players[i];
+        });
+      }
+    }
+    io.emit("RemovePlayer", Players);
+    console.log('Socket.io disconnected, id:', rmPlayerId);
   });
 });
 
