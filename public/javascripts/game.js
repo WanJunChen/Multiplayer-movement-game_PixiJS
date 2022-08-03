@@ -51,19 +51,22 @@ function setup() {
 
     socket.on("AddPlayer", SaveOtherPlayer);
     socket.on("RemovePlayer", SaveOtherPlayer);
-    // for(let i = 0; i < otherPlayer.length; i++) {
-        
-    // }
 
+    // Update Player Coordinate
     setInterval(() => {
         socket.emit('update', myPlayer.id, myPlayer.x, myPlayer.y);
-    }, 500);
+    }, 50);
+    
     socket.on('updateAllData', function(id, x, y) {
-        
+        for (var i = 0; i < app.stage.children.length; i++) {
+            if(app.stage.children[i].id != undefined && app.stage.children[i].id == id) {
+                app.stage.children[i].x = x;
+                app.stage.children[i].y = y;
+            }
+        }
     });
     PlayerMove(myPlayer);
 
-    // Update Player Data
     // setInterval(() => {
 
     // }, 100);
@@ -278,36 +281,47 @@ function createPlayer(PlayerInfo) {
     PlayerContainer.addChild(Player);
     return PlayerContainer;
 }
-let a = 50
 function SaveOtherPlayer(Players) { // Player(陣列)裡面放的是場上目前所有玩家的資料
     otherPlayer.length = 0;
-    let isIncludeInApp = false;
+    let isInGame = false, isInArray = false;
     let thePlayer;
     for (var i = 0; i < Players.length; i++) {
         if(Players[i].id != socket.id) {
             otherPlayer.push(Players[i]);
         }
     }
+    
     // 判斷otherPlayer中的玩家是否存在於app.stage中，若沒有，將此玩家addChild()進app.stage
     for (var i = 0; i < otherPlayer.length; i++) {
-        isIncludeInApp = false;
+        isInGame = false;
         for (var j = 0; j < app.stage.children.length; j++) {
             if (app.stage.children[j].id != undefined) {
                 if (otherPlayer[i].id == app.stage.children[j].id) {
-                    isIncludeInApp = true;
+                    isInGame = true;
                     break;
                 }
             }
         }
-        if (isIncludeInApp == false) {
+        if (isInGame == false) {
             thePlayer = createPlayer(otherPlayer[i]);
-            thePlayer.x += a;
-            a += 50;
             app.stage.addChild(thePlayer);
         }
     }
+    // 與上述相反(做移除玩家的動作)
+    for (var i = 0; i < app.stage.children.length; i++) {
+        if (app.stage.children[i].id != undefined && app.stage.children[i].id != myPlayer.id) {
+            isInArray = false;
+            for (var j = 0; j < otherPlayer.length; j++) {
+                    if (app.stage.children[i].id == otherPlayer[j].id) {
+                        isInArray = true;
+                        break;
+                    }
+            }
+            if (isInArray == false) {
+                app.stage.removeChild(app.stage.children[i]);
+            }
+        }
+    }
 
-    //接下來還要寫移除玩家的程式 --2022/8/2
 
-    console.log('現在有',(otherPlayer.length+1), '個人');
 }
