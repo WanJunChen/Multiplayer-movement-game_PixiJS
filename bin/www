@@ -63,7 +63,7 @@ io.on("connection", onConnection = (socket) => {
   });
   socket.on('update', function(id, x, y) {
     // console.log('id:', id, 'x:', x, 'y:', y);
-    io.emit('updateAllData', id, x, y)
+    io.emit('updateCoordinate', id, x, y)
   });
 
   socket.on('disconnect', onDisconnect => {

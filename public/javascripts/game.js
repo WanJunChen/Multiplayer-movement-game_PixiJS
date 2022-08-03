@@ -3,13 +3,10 @@ const socket = io.connect();
 let myPlayer, state;
 let otherPlayer = [];
 let PlayerImageTexture;
-
+let playerW = 50, playerH = 70;
+let playerStartX = 530, playerStartY = 150;
 let PlayerInfo = {
     name: prompt('請輸入名稱: '),
-    x: 530,
-    y: 150,
-    width: 50,
-    height: 75,
     id: null
 }
 let BagItem_y = 130;
@@ -57,7 +54,7 @@ function setup() {
         socket.emit('update', myPlayer.id, myPlayer.x, myPlayer.y);
     }, 50);
     
-    socket.on('updateAllData', function(id, x, y) {
+    socket.on('updateCoordinate', function(id, x, y) {
         for (var i = 0; i < app.stage.children.length; i++) {
             if(app.stage.children[i].id != undefined && app.stage.children[i].id == id) {
                 app.stage.children[i].x = x;
@@ -66,28 +63,6 @@ function setup() {
         }
     });
     PlayerMove(myPlayer);
-
-    // setInterval(() => {
-
-    // }, 100);
-
-    // // 發送一個 "sendMessage" 事件
-    // socket.emit("sendMessage", { 
-    //     Player: {
-    //         id: PlayerInfo.id,
-    //         name: PlayerInfo.name,
-    //         width:  PlayerInfo.width,
-    //         height:  PlayerInfo.height,
-    //         TextureFrom: PlayerInfo.ImageTexture.textureCacheIds[0]
-    //     }
-    // });
-    // // 監聽來自 server 的 "allMessage" 事件
-    // socket.on("allMessage", function (message) {
-    //     console.log(message)
-    // });
-
-
-
 
     state = play;
     app.ticker.add(delta =>gameLoop(delta));
@@ -260,21 +235,21 @@ function createPlayer(PlayerInfo) {
     });
     let NameBG = new PIXI.Graphics()
     NameBG.beginFill(0x000000, 0.3);
-    NameBG.drawRoundedRect((PlayerInfo.width - Name.width - 8) / 2, 0, Name.width + 8, 23, 5)
+    NameBG.drawRoundedRect((playerW - Name.width - 8) / 2, 0, Name.width + 8, 23, 5)
     NameBG.endFill();
     // PlayerContainer.interactive = true;
     // PlayerContainer.buttonMode = true;
     PlayerContainer.name = PlayerInfo.name;
     PlayerContainer.id = PlayerInfo.id;
-    PlayerContainer.x = PlayerInfo.x;
-    PlayerContainer.y = PlayerInfo.y;
+    PlayerContainer.x = playerStartX;
+    PlayerContainer.y = playerStartY;
     PlayerContainer.vx = 0;
     PlayerContainer.vy = 0;
-    Player.width = PlayerInfo.width;
-    Player.height = PlayerInfo.height;
+    Player.width = playerW;
+    Player.height = playerH;
     Player.x = 0;
     Player.y = 25;
-    Name.x = (PlayerInfo.width - Name.width) / 2;
+    Name.x = (playerW - Name.width) / 2;
     Name.y = 1;
     PlayerContainer.addChild(NameBG);
     PlayerContainer.addChild(Name);
