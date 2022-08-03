@@ -7,4 +7,4 @@ run `npm install`
 
 ## running
 
-`npm run start`
+`npm start`
